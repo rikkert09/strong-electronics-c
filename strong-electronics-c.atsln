@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Atmel Studio Solution File, Format Version 11.00
+Project("{54F91283-7BC4-4236-8FF9-10F437C3AD48}") = "strong-electronics-c", "strong-electronics-c\strong-electronics-c.cproj", "{08378349-08E7-40EE-8FD1-89ABB38526B9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|AVR = Debug|AVR
+		Release|AVR = Release|AVR
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{08378349-08E7-40EE-8FD1-89ABB38526B9}.Debug|AVR.ActiveCfg = Debug|AVR
+		{08378349-08E7-40EE-8FD1-89ABB38526B9}.Debug|AVR.Build.0 = Debug|AVR
+		{08378349-08E7-40EE-8FD1-89ABB38526B9}.Release|AVR.ActiveCfg = Release|AVR
+		{08378349-08E7-40EE-8FD1-89ABB38526B9}.Release|AVR.Build.0 = Release|AVR
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
