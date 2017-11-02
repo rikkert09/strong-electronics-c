@@ -7,14 +7,12 @@
  * @param ubrr clockcycles per baud tick
  */
 void init_USART(uint16_t ubrr){
-    // ubrr = usart baud rate register
-
-    // set the baud rate
-    UBRR0H = (uint8_t ) ubrr >> 8;
-    UBRR0L = (uint8_t ) ubrr;
-
-    UCSR0B |= (1 << TXEN0) | (1 << RXEN0);  // enable receive + transmit
-    UCSR0C |= (3 << UCSZ00) | (1 << USBS0); // 8 data bit; no parity; 2 stop bi
+    /*Set baud rate */
+    UBRR0H = (unsigned char)(ubrr>>8);	UBRR0L = (unsigned char)ubrr;
+	
+    //*Enable receiver and transmitter */	UCSR0B = (1<<RXEN0)|(1<<TXEN0);
+    /* Set frame format: 8data, 1stop bit */
+    UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
 
 /**
