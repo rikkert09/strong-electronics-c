@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <string.h>
 
 #include <alloca.h>
 
@@ -44,6 +45,30 @@ void send_reply(uint8_t message, uint16_t data){
 }
 
 /************************************************************************/
+/* write a string to UART, terminated by a '\n' character                */
+/************************************************************************/
+void write_string(uint8_t *string){
+	uint8_t i = 0;
+	for(i = 0; i < strlen(string); i++){
+		send_byte_USART(string[i]);
+	}
+	send_byte_USART('\n');
+}
+
+/************************************************************************/
+/* Read a string from USART. The string will be stored at dest and has	*/
+/* length len                                                           */
+/************************************************************************/
+uint8_t* read_string(uint8_t  *dest, uint8_t len){
+	uint8_t char_num = 0;
+	for(char_num = 0; char_num < len; char_num ++){
+		dest[char_num] = receive_byte_USART();
+	}
+	dest[len] = 0x00;
+	return dest;
+}
+
+/************************************************************************/
 /* Register a command handler, for a given command						*/
 /* @param command the code of the command to handle						*/
 /* @param pFHandler the callback function to handle the command			*/
@@ -76,7 +101,6 @@ uint8_t register_handler(uint8_t command, void (*pFHandler)(uint16_t)){
 // if the message is unknown ignore it, and continue operation
 ISR(USART_RX_vect){
 	uint8_t rec  = receive_command();
-	uint16_t command_arg = receive_short_USART(TRANSMIT_LITTLE_ENDIAN);
 	
 	list_node_t *rover = handler_list -> head;
 	
@@ -86,6 +110,7 @@ ISR(USART_RX_vect){
 		
 		if(handler -> command == rec)
 		{
+			uint16_t command_arg = receive_short_USART(TRANSMIT_LITTLE_ENDIAN);
 			handler -> pHandlerFunction(command_arg);
 			break;
 		}
