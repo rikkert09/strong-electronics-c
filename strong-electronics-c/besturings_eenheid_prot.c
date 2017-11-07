@@ -111,6 +111,7 @@ ISR(USART_RX_vect){
 		if(handler -> command == rec)
 		{
 			uint16_t command_arg = receive_short_USART(TRANSMIT_LITTLE_ENDIAN);
+			sei();
 			handler -> pHandlerFunction(command_arg);
 			break;
 		}
