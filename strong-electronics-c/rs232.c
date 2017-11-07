@@ -10,8 +10,8 @@ void init_USART(uint16_t ubrr){
     /*Set baud rate */
     UBRR0H = (unsigned char)(ubrr>>8);	UBRR0L = (unsigned char)ubrr;
 	
-    //*Enable receiver and transmitter */	UCSR0B = (1<<RXEN0)|(1<<TXEN0);
-    /* Set frame format: 8data, 1stop bit */
+    //Enable receiver and transmitter */	UCSR0B = (1<<RXEN0)|(1<<TXEN0);
+    //Set frame format: 8data, 1stop bit */
     UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
 
@@ -31,11 +31,11 @@ void send_byte_USART(uint8_t data){
  */
 void send_short_USART(uint16_t data, uint8_t endiannes){
     if(endiannes == TRANSMIT_LITTLE_ENDIAN){
-        send_byte_USART((uint8_t) data >> 8);
+        send_byte_USART((uint8_t) (data >> 8));
         send_byte_USART((uint8_t) data);
     } else {
         send_byte_USART((uint8_t) data);
-        send_byte_USART((uint8_t) data >> 8);
+        send_byte_USART((uint8_t) (data >> 8));
 
     }
 }

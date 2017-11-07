@@ -1,22 +1,37 @@
 #include <avr/io.h>
+#define F_CPU 16000000
+
 #include <util/delay.h>
 #include <stdint.h>
+#include <avr/interrupt.h>
 
 #include "rs232.h"
 #include "besturings_eenheid_prot.h"
 #include "adc.h"
 #include "distance.h"
 
-#define F_CPU	16E6
 
-uint16_t dist = 0;
+void setup(){
+	 initalize_control_unit_prot();
+	 DDRD = 0xff;
+	 PORTD = 0x00;
+}
+
+void test_function(uint16_t data){
+	send_reply(ACK_CONNECTION, data);
+}
+
+void test_function_2(uint16_t data){
+	send_reply(RET_SETTING, data);
+}
 
 int main(void){
-	init_distance();
-	init_USART(DEFAULT_UBRR);
+	setup();
+	register_handler(REQ_CONNECTION, test_function);
+	register_handler(REQ_SETTING, test_function_2);
 	
-	while(1){
-		dist = measure_distance();
-		send_short_USART(dist, TRANSMIT_LITTLE_ENDIAN);
-	}
+	sei();
+
+    while (1);
 }
+
