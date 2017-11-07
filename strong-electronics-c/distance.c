@@ -3,7 +3,6 @@
 #define F_CPU 16E6
 #include <util/delay.h>
 #include "distance.h"
-#include "rs232.h"
 
 volatile uint16_t overflow_counter = 0;
 volatile uint8_t sensor_activated = 0;
@@ -49,7 +48,6 @@ uint16_t measure_distance(){
 	while(PIND & _BV(PIND2));
 	TCCR0B = 0;
 	distance = ((overflow_counter) * 128 + (TCNT0 / 2)) / 58;
-	send_short_USART(distance, TRANSMIT_LITTLE_ENDIAN);
 	distance_measuring = 0;
 	return distance;
 }

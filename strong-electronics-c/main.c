@@ -12,9 +12,8 @@
 
 
 void setup(){
-	// initalize_control_unit_prot();
+	initalize_control_unit_prot();
 	init_distance();
-	init_USART(DEFAULT_UBRR);
 }
 
 void test_function(uint16_t data){
@@ -33,15 +32,12 @@ void return_status(uint16_t data){
 
 int main(void){
 	setup();
-	//register_handler(REQ_CONNECTION, test_function);
-	//register_handler(REQ_SETTING, test_function_2);
-	//register_handler(REQ_STATUS, return_status);
+	register_handler(REQ_CONNECTION, test_function);
+	register_handler(REQ_SETTING, test_function_2);
+	register_handler(REQ_STATUS, return_status);
 	
 	sei();
 
-    while (1){
-		measure_distance();
-		//send_short_USART(measure_distance(), TRANSMIT_LITTLE_ENDIAN);
-		};
+    while (1);
 }
 
