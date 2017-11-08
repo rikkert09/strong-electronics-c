@@ -6,7 +6,6 @@
 
 volatile uint16_t overflow_counter = 0;
 volatile uint8_t sensor_activated = 0;
-volatile uint8_t distance_measuring = 0;
 volatile uint16_t distance = 0;
 volatile uint16_t timeout_overflows = 2375;
 
@@ -16,9 +15,6 @@ void init_distance()
 	DDRD = 0x00;
 	PORTB = 0x00;
 	
-	//EICRA = (1 << ISC10);
-	//EIMSK = (1 << INT1);
-	
 	TCNT0 = 0;
 	TIMSK0 |= (1<<TOIE0);
 	
@@ -27,7 +23,6 @@ void init_distance()
 
 void send_pulse(){
 	PORTB = 0xFF;
-	distance_measuring = 1;
 	_delay_us(10);
 	PORTB = 0x00;
 	_delay_us(10);
@@ -48,29 +43,8 @@ uint16_t measure_distance(){
 	while(PIND & _BV(PIND2));
 	TCCR0B = 0;
 	distance = ((overflow_counter) * 128 + (TCNT0 / 2)) / 58;
-	distance_measuring = 0;
 	return distance;
 }
-
-/*
-ISR (INT1_vect)
-{
-	if(distance_measuring == 1){
-		if(sensor_activated == 0){
-			TCNT0 = 0;
-			TCCR0B |= (1<<CS00);
-			overflow_counter = 0;
-			sensor_activated = 1;
-		}
-		else{
-			sensor_activated = 0;
-			TCCR0B = 0;
-			distance = ((overflow_counter) * 16 + (TCNT0 / 16)) / 58;
-			send_short_USART(distance, TRANSMIT_LITTLE_ENDIAN);
-			distance_measuring = 0;
-		}
-	}
-}*/
 
 ISR(TIMER0_OVF_vect)
 {
@@ -80,7 +54,6 @@ ISR(TIMER0_OVF_vect)
 			TCCR0B = 0;
 			distance = 0;
 			sensor_activated = 0;
-			distance_measuring = 0;
 		}
 	}
 }
