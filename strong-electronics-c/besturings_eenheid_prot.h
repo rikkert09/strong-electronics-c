@@ -56,7 +56,8 @@ void send_reply(uint8_t message, uint16_t data);
 uint8_t register_handler(uint8_t, void (*)(uint16_t));
 
 uint8_t* read_string(uint8_t  *dest, uint8_t len);
-
 void write_string(uint8_t *string);
+
+void handle_comms();
 
 #endif //STRONG_ELECTRONICS_C_BESTURINGS_EENHEID_PROT_H
