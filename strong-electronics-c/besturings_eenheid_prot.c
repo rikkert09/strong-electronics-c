@@ -23,8 +23,7 @@ list_t* handler_list = NULL;
 
 void initalize_control_unit_prot(){
 	init_USART(DEFAULT_UBRR);		// initialize serial comms
-	UCSR0B |= 1 << RXCIE0;			// enable rx interrupt
-	
+	//UCSR0B |= 1 << RXCIE0;			// enable rx interrupt
 	handler_list = list_new();
 }
 
@@ -99,23 +98,21 @@ uint8_t register_handler(uint8_t command, void (*pFHandler)(uint16_t)){
 
 // select the correct handler for the incoming message
 // if the message is unknown ignore it, and continue operation
-ISR(USART_RX_vect){
-	uint8_t rec  = receive_command();
-	
-	list_node_t *rover = handler_list -> head;
-	
-	while(rover -> next != handler_list -> head){
-		
-		command_handler *handler = rover -> val;
-		
-		if(handler -> command == rec)
-		{
-			uint16_t command_arg = receive_short_USART(TRANSMIT_LITTLE_ENDIAN);
-			sei();
-			handler -> pHandlerFunction(command_arg);
-			break;
+void handle_comms(){
+	cli();
+	if(UCSR0A & (1 << RXC0)){
+		uint8_t rec  = UDR0;
+		list_node_t *rover = handler_list -> head;
+		while(rover -> next != handler_list -> head){
+			command_handler *handler = rover -> val;
+			if(handler -> command == rec)
+			{
+				uint16_t command_arg = receive_short_USART(TRANSMIT_LITTLE_ENDIAN);
+				handler -> pHandlerFunction(command_arg);
+				break;
+			}
+			rover = rover -> next;
 		}
-		
-		rover = rover -> next;
 	}
+	sei();
 }
