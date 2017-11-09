@@ -53,11 +53,6 @@ int main(void){
 	register_handler(REQ_STATUS, return_status);
 	
 	sei();
-	
-	//init_USART(DEFAULT_UBRR);
-	//init_adc();
-
-
-    while (1);
+ 
 }
 
