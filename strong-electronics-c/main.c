@@ -10,6 +10,10 @@
 #include "distance.h"
 #include "AVR_TTC_scheduler.h"
 
+#define EXTENDED_PIN PINB5
+#define RETRACTED_PIN PINB3
+#define MOVING_PIN PINB4
+
 #define LIGHT_MOD
 
 uint16_t sensor_hist [2] = {0, 0};
@@ -19,6 +23,16 @@ uint16_t sensor_trig_val = 150;
 uint16_t op_mode = OP_MODE_AUTO;
 uint16_t setting_ext_in_out = 0;
 uint16_t setting_ext_to_val = 0;
+
+extern uint16_t distance;
+
+uint8_t retracting = 0;
+uint8_t extending = 0;
+
+uint16_t sch_extend_index = SCH_MAX_TASKS;
+uint16_t sch_retract_index = SCH_MAX_TASKS;
+
+uint8_t current_distance = 0;
 
 uint8_t* device_name = "Dummy Name";
 
@@ -42,7 +56,7 @@ uint16_t get_lux(){
 void return_status(uint16_t data){
 	//uint16_t distance = measure_distance();
 	uint16_t avg_sensor = (sensor_hist[0] + sensor_hist[1])/2;
-	send_reply(RET_STATUS, (uint16_t)0x1000);
+	send_reply(RET_STATUS, measure_distance());
 	send_short_USART(avg_sensor, TRANSMIT_LITTLE_ENDIAN);
 }
 
@@ -99,7 +113,7 @@ void handler_update_setting(uint16_t data){
 			}
 			break;
 		case SETTING_MAX_EXTEND:
-			if(new_value > setting_min_ext){
+			if(setting_min_ext < new_value){
 				setting_max_ext = new_value;
 				succes_failure = SUCCES;
 			}
@@ -126,6 +140,49 @@ void handler_request_disconnect(uint16_t data){
 	send_reply(ACK_DISCONNECT, 0);
 }
 
+void extend(){
+	uint16_t distance = measure_distance();
+	if(distance <= setting_max_ext && sensor_hist[0] > sensor_trig_val){
+		extending = 1;
+		PORTB &= ~_BV(RETRACTED_PIN);	//turn of retraced LED
+		PORTB |= _BV(EXTENDED_PIN);		//turn on EXTENDED LED
+		PORTB ^= _BV(MOVING_PIN);		//blink moving LED
+	}else{
+		setting_ext_in_out = 1;
+		extending = 0;
+		sch_extend_index = SCH_Delete_Task(sch_extend_index);
+		PORTB |= _BV(EXTENDED_PIN);		//keep extended LED lit
+		PORTB &= ~_BV(MOVING_PIN);		//turn of moving LED
+	}
+}
+
+void retract(){
+	uint16_t distance = measure_distance();
+	if(distance > setting_min_ext && sensor_hist[0] < sensor_trig_val){
+		retracting = 1;
+		PORTB &= ~_BV(EXTENDED_PIN);
+		PORTB |= _BV(RETRACTED_PIN);
+		PORTB ^= _BV(MOVING_PIN);
+	}else{
+		sch_retract_index = SCH_Delete_Task(sch_retract_index);
+		setting_ext_in_out = 0;
+		retracting = 0;
+		PORTB |= _BV(RETRACTED_PIN);	//keep extended LED lit
+		PORTB &= ~_BV(MOVING_PIN);		//turn of moving LED
+	}	
+}
+
+void check_dist_set_mode(){
+	uint16_t distance = measure_distance();
+	if(sensor_hist[0] > sensor_trig_val && distance < setting_max_ext && !extending){
+		setting_ext_in_out = 1;
+		sch_extend_index = SCH_Add_Task(extend, 0, 4);
+	}else if(sensor_hist[0] < sensor_trig_val && distance > setting_min_ext && !retracting){
+		setting_ext_in_out = 0;
+		sch_retract_index = SCH_Add_Task(retract, 0, 4);
+	}
+}
+	
 void update_status(){
 	sensor_hist[1] = sensor_hist[0];
 #ifdef LIGHT_MOD
@@ -134,12 +191,16 @@ void update_status(){
 #ifdef TEMP_MOD
 	sensor_hist[0] = get_temperature();
 #endif
+	check_dist_set_mode();
 }
 
 void setup(){
 	initalize_control_unit_prot();
-	//init_distance();
+	init_distance();
 	init_adc();
+	
+	DDRB |= 0b00111000;
+	PORTB |= _BV(RETRACTED_PIN) | _BV(EXTENDED_PIN) | _BV(MOVING_PIN);
 
 	register_handler(REQ_DEVICE_NAME, handler_request_device_name);
 	register_handler(REQ_CONNECTION, handler_connection_request);
@@ -150,17 +211,19 @@ void setup(){
 
 	SCH_Init_T1();
 
-	SCH_Add_Task(handle_comms, 0, 1);
-#ifdef LIGHT_MOD
-	SCH_Add_Task(update_status, 250, 300);				// if this is a light sensor, update every 30 sec
-#endif
-#ifdef TEMP_MOD
+	SCH_Add_Task(handle_comms, 10, 1);
+	SCH_Add_Task(check_dist_set_mode, 0, 0);
+	#ifdef LIGHT_MOD
+	SCH_Add_Task(update_status, 250, 50);				//TODO if this is a light sensor, update every 30 sec
+	#endif
+	#ifdef TEMP_MOD
 	SCH_Add_Task(update_status, 400, 400);				// if this is a temperature sensor, update every 40 sec
-#endif
+	#endif
 }
 
 int main(void){
 	setup();
+	update_status();
 	SCH_Start();
 
     while (1){
