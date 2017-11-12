@@ -20,7 +20,7 @@ uint16_t op_mode = OP_MODE_AUTO;
 uint16_t setting_ext_in_out = 0;
 uint16_t setting_ext_to_val = 0;
 
-uint8_t* device_name = "Dummy Name";
+uint8_t* device_name = "Mooi ding4";
 
 uint8_t is_connected = 0;
 
@@ -40,10 +40,10 @@ uint16_t get_lux(){
 }
 
 void return_status(uint16_t data){
-	//uint16_t distance = measure_distance();
+	uint16_t distance = measure_distance();
 	uint16_t avg_sensor = (sensor_hist[0] + sensor_hist[1])/2;
-	send_reply(RET_STATUS, (uint16_t)0x1000);
-	send_short_USART(avg_sensor, TRANSMIT_LITTLE_ENDIAN);
+	send_reply(RET_STATUS, distance);
+	send_short_USART(get_lux(), TRANSMIT_LITTLE_ENDIAN);
 }
 
 void handler_connection_request(uint16_t data){
@@ -136,9 +136,21 @@ void update_status(){
 #endif
 }
 
+void handler_request_sensor_type(uint16_t data){
+	uint16_t sensor_type = 0;
+	#ifdef LIGHT_MOD
+		sensor_type = SENSOR_TYPE_LIGHT;
+	#endif
+	#ifdef TEMP_MOD
+		sensor_type = SENSOR_TYPE_TEMP;
+	#endif
+	
+	send_reply(RET_SENSOR_TYPE, sensor_type);
+}
+
 void setup(){
 	initalize_control_unit_prot();
-	//init_distance();
+	init_distance();
 	init_adc();
 
 	register_handler(REQ_DEVICE_NAME, handler_request_device_name);
@@ -147,15 +159,16 @@ void setup(){
 	register_handler(REQ_STATUS, return_status);
 	register_handler(REQ_SETTING, handler_request_setting);
 	register_handler(UPD_SETTING, handler_update_setting);
+	register_handler(REQ_SENSOR_TYPE, handler_request_sensor_type);
 
 	SCH_Init_T1();
 
 	SCH_Add_Task(handle_comms, 0, 1);
 #ifdef LIGHT_MOD
-	SCH_Add_Task(update_status, 250, 300);				// if this is a light sensor, update every 30 sec
+	SCH_Add_Task(update_status, 250, 30);				// if this is a light sensor, update every 30 sec
 #endif
 #ifdef TEMP_MOD
-	SCH_Add_Task(update_status, 400, 400);				// if this is a temperature sensor, update every 40 sec
+	SCH_Add_Task(update_status, 400, 40);				// if this is a temperature sensor, update every 40 sec
 #endif
 }
 
