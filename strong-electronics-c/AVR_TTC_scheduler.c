@@ -128,7 +128,7 @@ unsigned char SCH_Add_Task(void (*pFunction)(), const unsigned int DELAY, const 
 unsigned char SCH_Delete_Task(const unsigned char TASK_INDEX)
 {
    // Return_code can be used for error reporting, NOT USED HERE THOUGH!
-   unsigned char Return_code = 0;
+   unsigned char Return_code = SCH_MAX_TASKS;
 
    SCH_tasks_G[TASK_INDEX].pTask = 0;
    SCH_tasks_G[TASK_INDEX].Delay = 0;
