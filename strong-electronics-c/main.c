@@ -24,9 +24,6 @@ uint16_t op_mode = OP_MODE_AUTO;
 uint16_t setting_ext_in_out = 0;
 uint16_t setting_ext_to_val = 0;
 
-<<<<<<< HEAD
-uint8_t* device_name = "Mooi ding4";
-=======
 extern uint16_t distance;
 
 uint8_t retracting = 0;
@@ -38,7 +35,6 @@ uint16_t sch_retract_index = SCH_MAX_TASKS;
 uint8_t current_distance = 0;
 
 uint8_t* device_name = "Dummy Name";
->>>>>>> b4a52f60d32efbc0554b758635cb2ffc96fecd7b
 
 uint8_t is_connected = 0;
 
@@ -60,13 +56,9 @@ uint16_t get_lux(){
 void return_status(uint16_t data){
 	uint16_t distance = measure_distance();
 	uint16_t avg_sensor = (sensor_hist[0] + sensor_hist[1])/2;
-<<<<<<< HEAD
-	send_reply(RET_STATUS, distance);
-	send_short_USART(get_lux(), TRANSMIT_LITTLE_ENDIAN);
-=======
+
 	send_reply(RET_STATUS, measure_distance());
 	send_short_USART(avg_sensor, TRANSMIT_LITTLE_ENDIAN);
->>>>>>> b4a52f60d32efbc0554b758635cb2ffc96fecd7b
 }
 
 void handler_connection_request(uint16_t data){
@@ -233,15 +225,6 @@ void setup(){
 
 	SCH_Init_T1();
 
-<<<<<<< HEAD
-	SCH_Add_Task(handle_comms, 0, 1);
-#ifdef LIGHT_MOD
-	SCH_Add_Task(update_status, 250, 30);				// if this is a light sensor, update every 30 sec
-#endif
-#ifdef TEMP_MOD
-	SCH_Add_Task(update_status, 400, 40);				// if this is a temperature sensor, update every 40 sec
-#endif
-=======
 	SCH_Add_Task(handle_comms, 10, 1);
 	SCH_Add_Task(check_dist_set_mode, 0, 0);
 	#ifdef LIGHT_MOD
@@ -250,7 +233,6 @@ void setup(){
 	#ifdef TEMP_MOD
 	SCH_Add_Task(update_status, 400, 400);				// if this is a temperature sensor, update every 40 sec
 	#endif
->>>>>>> b4a52f60d32efbc0554b758635cb2ffc96fecd7b
 }
 
 int main(void){
