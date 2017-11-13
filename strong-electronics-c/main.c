@@ -23,11 +23,19 @@
 #define SENSOR_TRIG_VAL_STORAGE (uint16_t*) 8
 #define OP_MODE_STORAGE (uint16_t*) 10
 #define EXTENDED_STORAGE (uint16_t*) 12
+#define SENSOR_TYPE (uint16_t*) 14
 
 uint16_t sensor_hist [2] = {0, 0};
 uint16_t setting_min_ext = 10;
 uint16_t setting_max_ext = 130;
+#ifdef LIGHT_MOD
+uint8_t sensor_type = 1;
 uint16_t sensor_trig_val = 150;
+#endif
+#ifdef TEMP_MOD
+uint8_t	sensor_type = 2;
+uint16_t sensor_trig_val = 25;
+#endif
 uint16_t op_mode = OP_MODE_AUTO;
 uint16_t setting_ext_in_out = 0;
 uint16_t setting_ext_to_val = 0;
@@ -41,7 +49,7 @@ uint16_t sch_retract_index = SCH_MAX_TASKS;
 
 uint8_t current_distance = 0;
 
-uint8_t* device_name = "Dummy Name";
+uint8_t* device_name = "Rolluik";
 
 uint8_t is_connected = 0;
 
@@ -302,12 +310,16 @@ void setup(){
 	register_handler(UPD_SETTING, handler_update_setting);
 	register_handler(REQ_SENSOR_TYPE, handler_request_sensor_type);
 	
-	setting_ext_in_out = eeprom_read_word(SETTING_EXTEND_IN_OUT_STORAGE);
-	setting_min_ext = eeprom_read_word(SETTING_MIN_EXT_STORAGE);
-	setting_max_ext = eeprom_read_word(SETTING_MAX_EXT_STORAGE);
-	op_mode = eeprom_read_word(OP_MODE_STORAGE);
-	sensor_trig_val = eeprom_read_word(SENSOR_TRIG_VAL_STORAGE);
-	extended = eeprom_read_word(EXTENDED_STORAGE);
+	if(eeprom_read_word(SENSOR_TYPE) != sensor_type){
+		write_settings();
+	}else {
+		setting_ext_in_out = eeprom_read_word(SETTING_EXTEND_IN_OUT_STORAGE);
+		setting_min_ext = eeprom_read_word(SETTING_MIN_EXT_STORAGE);
+		setting_max_ext = eeprom_read_word(SETTING_MAX_EXT_STORAGE);
+		op_mode = eeprom_read_word(OP_MODE_STORAGE);
+		sensor_trig_val = eeprom_read_word(SENSOR_TRIG_VAL_STORAGE);
+		extended = eeprom_read_word(EXTENDED_STORAGE);
+	}
 
 	SCH_Init_T1();
 
@@ -319,6 +331,16 @@ void setup(){
 	#ifdef TEMP_MOD
 	SCH_Add_Task(update_status, 400, 400);				// if this is a temperature sensor, update every 40 sec
 	#endif
+}
+
+void write_settings(){
+	eeprom_update_word(SETTING_EXTEND_IN_OUT_STORAGE, setting_ext_in_out);
+	eeprom_update_word(SETTING_MIN_EXT_STORAGE, setting_min_ext);
+	eeprom_update_word(SETTING_MAX_EXT_STORAGE, setting_max_ext);
+	eeprom_update_word(OP_MODE_STORAGE, op_mode);
+	eeprom_update_word(SENSOR_TRIG_VAL_STORAGE, sensor_trig_val);
+	eeprom_update_word(EXTENDED_STORAGE, extended);
+	eeprom_update_word(SENSOR_TYPE, sensor_type);
 }
 
 int main(void){
