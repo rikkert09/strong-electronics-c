@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <avr/eeprom.h>
 
 #include "rs232.h"
 #include "besturings_eenheid_prot.h"
@@ -15,6 +16,13 @@
 #define MOVING_PIN PINB4
 
 #define LIGHT_MOD
+
+#define SETTING_MIN_EXT_STORAGE (uint16_t*) 2
+#define SETTING_MAX_EXT_STORAGE (uint16_t*) 4
+#define SETTING_EXTEND_IN_OUT_STORAGE (uint16_t*) 6
+#define SENSOR_TRIG_VAL_STORAGE (uint16_t*) 8
+#define OP_MODE_STORAGE (uint16_t*) 10
+#define EXTENDED_STORAGE (uint16_t*) 12
 
 uint16_t sensor_hist [2] = {0, 0};
 uint16_t setting_min_ext = 10;
@@ -36,6 +44,8 @@ uint8_t current_distance = 0;
 uint8_t* device_name = "Dummy Name";
 
 uint8_t is_connected = 0;
+
+void check_dist_set_mode();
 
 uint16_t get_temperature() {
 	uint8_t adc_value = get_adc_value(0);
@@ -109,29 +119,35 @@ void handler_update_setting(uint16_t data){
 		case SETTING_MIN_EXTEND:
 			if(new_value < setting_max_ext){
 				setting_min_ext = new_value;
+				eeprom_update_word(SETTING_MIN_EXT_STORAGE, new_value);
 				succes_failure = SUCCES;
 			}
 			break;
 		case SETTING_MAX_EXTEND:
 			if(setting_min_ext < new_value){
 				setting_max_ext = new_value;
+				eeprom_update_word(SETTING_MAX_EXT_STORAGE, new_value);
 				succes_failure = SUCCES;
 			}
 			break;
 		case SETTING_SENSOR_TRIG_VAL:
 			sensor_trig_val = new_value;
+			eeprom_update_word(SENSOR_TRIG_VAL_STORAGE, new_value);
 			succes_failure = SUCCES;
 			break;
 		case SETTING_OP_MODE:
 			op_mode = new_value;
+			eeprom_update_word(OP_MODE_STORAGE, new_value);
 			succes_failure = SUCCES;
 			break;
 		case SETTING_EXTEND_IN_OUT:
 			setting_ext_in_out = new_value;
+			eeprom_update_word(SETTING_EXTEND_IN_OUT_STORAGE, new_value);
 			check_dist_set_mode();
 			succes_failure = SUCCES;
 			break;
 		case SETTING_EXTEND_TO_VAL:
+			succes_failure = SUCCES;
 			break;
 	}
 
@@ -275,7 +291,7 @@ void setup(){
 	init_distance();
 	init_adc();
 	
-	DDRB |= 0b00111000;
+	DDRB |= (1 << RETRACTED_PIN) | (1 << MOVING_PIN) | (1 << EXTENDED_PIN);
 	PORTB |= _BV(RETRACTED_PIN);
 
 	register_handler(REQ_DEVICE_NAME, handler_request_device_name);
@@ -285,6 +301,13 @@ void setup(){
 	register_handler(REQ_SETTING, handler_request_setting);
 	register_handler(UPD_SETTING, handler_update_setting);
 	register_handler(REQ_SENSOR_TYPE, handler_request_sensor_type);
+	
+	setting_ext_in_out = eeprom_read_word(SETTING_EXTEND_IN_OUT_STORAGE);
+	setting_min_ext = eeprom_read_word(SETTING_MIN_EXT_STORAGE);
+	setting_max_ext = eeprom_read_word(SETTING_MAX_EXT_STORAGE);
+	op_mode = eeprom_read_word(OP_MODE_STORAGE);
+	sensor_trig_val = eeprom_read_word(SENSOR_TRIG_VAL_STORAGE);
+	extended = eeprom_read_word(EXTENDED_STORAGE);
 
 	SCH_Init_T1();
 
