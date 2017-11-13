@@ -24,10 +24,9 @@ uint16_t op_mode = OP_MODE_AUTO;
 uint16_t setting_ext_in_out = 0;
 uint16_t setting_ext_to_val = 0;
 
-extern uint16_t distance;
-
 uint8_t retracting = 0;
 uint8_t extending = 0;
+uint8_t extended = 0;
 
 uint16_t sch_extend_index = SCH_MAX_TASKS;
 uint16_t sch_retract_index = SCH_MAX_TASKS;
@@ -128,6 +127,9 @@ void handler_update_setting(uint16_t data){
 			succes_failure = SUCCES;
 			break;
 		case SETTING_EXTEND_IN_OUT:
+			setting_ext_in_out = new_value;
+			check_dist_set_mode();
+			succes_failure = SUCCES;
 			break;
 		case SETTING_EXTEND_TO_VAL:
 			break;
@@ -143,44 +145,105 @@ void handler_request_disconnect(uint16_t data){
 
 void extend(){
 	uint16_t distance = measure_distance();
-	if(distance <= setting_max_ext && sensor_hist[0] > sensor_trig_val){
-		extending = 1;
-		PORTB &= ~_BV(RETRACTED_PIN);	//turn of retraced LED
-		PORTB |= _BV(EXTENDED_PIN);		//turn on EXTENDED LED
-		PORTB ^= _BV(MOVING_PIN);		//blink moving LED
-	}else{
-		setting_ext_in_out = 1;
-		extending = 0;
-		sch_extend_index = SCH_Delete_Task(sch_extend_index);
-		PORTB |= _BV(EXTENDED_PIN);		//keep extended LED lit
-		PORTB &= ~_BV(MOVING_PIN);		//turn of moving LED
+	if(op_mode == OP_MODE_AUTO){
+		if(distance <= setting_max_ext && sensor_hist[0] > sensor_trig_val){
+			extending = 1;
+			PORTB &= ~_BV(RETRACTED_PIN);	//turn of retraced LED
+			PORTB |= _BV(EXTENDED_PIN);		//turn on EXTENDED LED
+			PORTB ^= _BV(MOVING_PIN);		//toggle moving LED
+		}else{
+			extending = 0;
+			extended = 1;
+			sch_extend_index = SCH_Delete_Task(sch_extend_index);
+			PORTB &= ~_BV(RETRACTED_PIN);	//turn of retraced LE
+			PORTB |= _BV(EXTENDED_PIN);		//keep extended LED lit
+			PORTB &= ~_BV(MOVING_PIN);		//turn of moving LED
+		}			
+	}else if(op_mode == OP_MODE_MANUAL){
+		if(distance <= setting_max_ext){
+			extending = 1;
+			PORTB &= ~_BV(RETRACTED_PIN);	//turn of retraced LED
+			PORTB |= _BV(EXTENDED_PIN);		//turn on EXTENDED LED
+			PORTB ^= _BV(MOVING_PIN);		//toggle moving LED
+		}else{
+			extending = 0;
+			extended = 1;
+			sch_extend_index = SCH_Delete_Task(sch_extend_index);
+			PORTB &= ~_BV(RETRACTED_PIN);	//turn of retraced LED
+			PORTB |= _BV(EXTENDED_PIN);		//keep extended LED lit
+			PORTB &= ~_BV(MOVING_PIN);		//turn of moving LED
+		}
 	}
-}
+}	
+
 
 void retract(){
 	uint16_t distance = measure_distance();
-	if(distance > setting_min_ext && sensor_hist[0] < sensor_trig_val){
-		retracting = 1;
-		PORTB &= ~_BV(EXTENDED_PIN);
-		PORTB |= _BV(RETRACTED_PIN);
-		PORTB ^= _BV(MOVING_PIN);
-	}else{
-		sch_retract_index = SCH_Delete_Task(sch_retract_index);
-		setting_ext_in_out = 0;
-		retracting = 0;
-		PORTB |= _BV(RETRACTED_PIN);	//keep extended LED lit
-		PORTB &= ~_BV(MOVING_PIN);		//turn of moving LED
+	if(op_mode == OP_MODE_AUTO){
+		if(distance > setting_min_ext && sensor_hist[0] < sensor_trig_val){
+			retracting = 1;
+			PORTB &= ~_BV(EXTENDED_PIN);
+			PORTB |= _BV(RETRACTED_PIN);
+			PORTB ^= _BV(MOVING_PIN);
+			PORTB &= ~_BV(EXTENDED_PIN);
+		}else{
+			sch_retract_index = SCH_Delete_Task(sch_retract_index);
+			retracting = 0;
+			extended = 0;
+			PORTB |= _BV(RETRACTED_PIN);	//keep extended LED lit
+			PORTB &= ~_BV(MOVING_PIN);		//turn of moving LED
+		}
+	}else if(op_mode == OP_MODE_MANUAL){
+		if(distance > setting_min_ext && setting_ext_in_out == 0){
+			retracting = 1;
+			PORTB &= ~_BV(EXTENDED_PIN);
+			PORTB |= _BV(RETRACTED_PIN);
+			PORTB ^= _BV(MOVING_PIN);
+		}else{
+			sch_retract_index = SCH_Delete_Task(sch_retract_index);
+			retracting = 0;
+			extended = 0;
+			PORTB &= ~_BV(EXTENDED_PIN);
+			PORTB |= _BV(RETRACTED_PIN);	//keep extended LED lit
+			PORTB &= ~_BV(MOVING_PIN);		//turn of moving LED
+		}
 	}	
 }
 
 void check_dist_set_mode(){
 	uint16_t distance = measure_distance();
-	if(sensor_hist[0] > sensor_trig_val && distance < setting_max_ext && !extending){
-		setting_ext_in_out = 1;
-		sch_extend_index = SCH_Add_Task(extend, 0, 4);
-	}else if(sensor_hist[0] < sensor_trig_val && distance > setting_min_ext && !retracting){
-		setting_ext_in_out = 0;
-		sch_retract_index = SCH_Add_Task(retract, 0, 4);
+	if(op_mode == OP_MODE_AUTO){
+		if(sensor_hist[0] > sensor_trig_val && distance <= setting_max_ext && !extending){
+			retracting = 0;
+			extending = 1;
+			if(sch_retract_index != SCH_MAX_TASKS){
+				sch_retract_index = SCH_Delete_Task(sch_retract_index);
+			}			
+			sch_extend_index = SCH_Add_Task(extend, 1, 4);
+		}else if(sensor_hist[0] < sensor_trig_val && (distance >= setting_min_ext) && !retracting){
+			extending = 0;
+			retracting = 1;
+			if(sch_extend_index != SCH_MAX_TASKS){
+				sch_extend_index = SCH_Delete_Task(sch_extend_index);
+			}			
+			sch_retract_index = SCH_Add_Task(retract, 1, 4);
+		}
+	}else if(op_mode == OP_MODE_MANUAL){
+		if(distance <= setting_max_ext && !extending && setting_ext_in_out == 1){
+			extending = 1;
+			retracting = 0;
+			if(sch_retract_index != SCH_MAX_TASKS){
+				sch_retract_index = SCH_Delete_Task(sch_retract_index);
+			}
+			sch_extend_index = SCH_Add_Task(extend, 0, 4);
+		}else if(distance >= setting_min_ext && !retracting && setting_ext_in_out == 0){
+			extending = 0;
+			retracting = 1;
+			if(sch_extend_index != SCH_MAX_TASKS){
+				sch_extend_index = SCH_Delete_Task(sch_extend_index);
+			}
+			sch_retract_index = SCH_Add_Task(retract, 0, 4);
+		}			
 	}
 }
 	
@@ -213,7 +276,7 @@ void setup(){
 	init_adc();
 	
 	DDRB |= 0b00111000;
-	PORTB |= _BV(RETRACTED_PIN) | _BV(EXTENDED_PIN) | _BV(MOVING_PIN);
+	PORTB |= _BV(RETRACTED_PIN);
 
 	register_handler(REQ_DEVICE_NAME, handler_request_device_name);
 	register_handler(REQ_CONNECTION, handler_connection_request);
@@ -244,4 +307,3 @@ int main(void){
 		SCH_Dispatch_Tasks();
 	}
 }
-

@@ -41,8 +41,8 @@
 #define SETTING_EXTEND_IN_OUT       0x0004
 #define SETTING_EXTEND_TO_VAL       0x0005
 
-#define OP_MODE_AUTO                0x00
-#define OP_MOPE_MANUAL              0x01
+#define OP_MODE_AUTO                0x0000
+#define OP_MODE_MANUAL              0x0001
 
 #define SUCCES                      0x00
 #define FAILURE                     0xFF
